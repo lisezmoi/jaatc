@@ -1,0 +1,19 @@
+{
+  "name": "nko3-lisezmoi",
+  "version": "0.0.0",
+  "description": "LISEZMOI",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:nko3/lisezmoi.git"
+  },
+  "dependencies": {
+  },
+  "engines": {
+    "node": "0.8.x"
+  },
+  "subdomain": "lisezmoi.nko3"
+}
