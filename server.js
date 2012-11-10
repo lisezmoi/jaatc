@@ -1,38 +1,32 @@
 var http = require('http'),
-    fs = require('fs');
+    fs = require('fs'),
+    express = require('express'),
+    httpApp = express(),
+    rooms = require('./rooms.json'),
+    getWorld = require('./lib/world');
 
-var contentTypes = { 'html': 'text/html; charset=UTF-8', 'js': 'text/javascript; charset=UTF-8', 'json': 'application/json' };
+// var world = getWorld(rooms);
 
-function getExt(filename) {
-  var fSplit = filename.split('.');
-  return fSplit[fSplit.length-1];
-}
+httpApp.set('views', __dirname + '/tpl');
+httpApp.engine('html', require('ejs').renderFile);
+httpApp.use(express.static(__dirname + '/client'));
 
-http.createServer(function(req, res) {
-  
-  var urls = {
-    '/': 'tpl/index.html',
-    '/index.js': 'client/index.js',
-    '/debug': 'tpl/debug.html',
-    '/debug.js': 'client/debug.js',
-    '/rooms.json': 'rooms.json'
-  };
-  
-  
-  var send = function(filename, code) {
-    res.writeHead(code || 200, {'Content-Type': contentTypes[getExt(filename)]});
-    var fileStream = fs.createReadStream(__dirname + '/' + filename);
-    fileStream.pipe(res);
-  };
-  
-  for (var i in urls) {
-    if (req.url === i) {
-      return send(urls[i]);
-    }
-  }
-  
-  return send('tpl/404.html', 404);
-  
-}).listen(8000);
+httpApp.get('/', function(req, res){
+  res.render('index.html', function(err, html){
+    res.send(html);
+  });
+});
+
+httpApp.get('/debug', function(req, res){
+  res.render('debug.html', function(err, html){
+    res.send(html);
+  });
+});
+
+httpApp.get('/rooms.json', function(req, res){
+  res.send(rooms);
+});
+
+httpApp.listen(8000);
 
 console.log('Server running at http://0.0.0.0:8000/');

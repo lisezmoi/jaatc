@@ -31,15 +31,11 @@
         break;
     }
     
-    console.log(xBase)
     if (side === 0 || side === 2) {
       xBase = xBase + (position * Math.round(roomSize/25));
     } else if (side === 1 || side === 3) {
       yBase = yBase + (position * Math.round(roomSize/15));
     }
-    
-    // + position * (roomSize / 20)
-    
     
     ctx.strokeRect(xBase, yBase, 10, 10);
   }
