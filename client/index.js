@@ -1,20 +1,32 @@
-(function(window, io, Math2, KeyboardJS, sessionID){
-  var document = window.document,
+(function(window, io, Math2, KeyboardJS, PxLoader, sessionID){
+  var TILE_SIZE = 32,
+      PLAYER_SPEED = 5,
+      V_CELLS = 25,
+      H_CELLS = 15,
+      document = window.document,
       canv = document.getElementsByTagName('canvas')[0],
       ctx = canv.getContext('2d'),
       Vector2D = Math2.Vector2D,
-      tileSize = 32,
-      PLAYER_SPEED = 10,
-      V_CELLS = 25,
-      H_CELLS = 15,
+      loader = new PxLoader(),
       room = null,
       players = [],
       cPlayer = null,
       canvWidth = 0,
-      canvHeight = 0;
+      canvHeight = 0,
+      images = {};
   
-  canvWidth = canv.width = tileSize * V_CELLS; // 800
-  canvHeight = canv.height = tileSize * H_CELLS; // 480
+  canvWidth = canv.width = TILE_SIZE * V_CELLS; // 800
+  canvHeight = canv.height = TILE_SIZE * H_CELLS; // 480
+  
+  // Images to load
+  images.playerIdle = loader.addImage('/player-idle.png');
+  images.playerWalk = [
+    loader.addImage('/player-walk-1.png'),
+    loader.addImage('/player-walk-2.png'),
+    loader.addImage('/player-walk-3.png'),
+    loader.addImage('/player-walk-4.png'),
+    loader.addImage('/player-walk-5.png')
+  ];
   
   var socket = io.connect('http://localhost');
   
@@ -47,15 +59,26 @@
   var Player = function(){
     this.position = new Vector2D(0, 0);
     this.direction = new Vector2D(0, 0);
-    this.dimensions = new Vector2D(tileSize, tileSize);
+    this.dimensions = new Vector2D(TILE_SIZE, TILE_SIZE);
   };
   Player.prototype.draw = function(){
     ctx.save();
     ctx.translate(this.position.x, this.position.y);
     ctx.rotate(this.direction.getAngle());
-    ctx.fillStyle = 'red';
-    ctx.fillRect(-this.dimensions.x/2, -this.dimensions.y/2, this.dimensions.x, this.dimensions.y);
+    ctx.drawImage(this.speed? this.walkImage() : images.playerIdle, -this.dimensions.x/2, -this.dimensions.y/2, this.dimensions.x, this.dimensions.y);
     ctx.restore();
+  };
+  Player.prototype.walkImage = function(){
+    var now = Date.now(),
+        switchSpeed = 100;
+    if (!this.lastImgSwitch || now - this.lastImgSwitch > switchSpeed * images.playerWalk.length) {
+      this.lastImgSwitch = now;
+    }
+    for (var i=0; i < images.playerWalk.length; i++) {
+      if (now - this.lastImgSwitch < switchSpeed * (i+1)) {
+        return images.playerWalk[i];
+      }
+    }
   };
   
   var drawRoom = function(room) {
@@ -127,6 +150,8 @@
       players[i].draw();
     }
   });
-  loop.start();
   
-})(this, this.io, this.Math2, this.KeyboardJS, this.sessionID);
+  loader.addCompletionListener(loop.start);
+  loader.start();
+  
+})(this, this.io, this.Math2, this.KeyboardJS, this.PxLoader, this.sessionID);
