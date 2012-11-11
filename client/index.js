@@ -3,7 +3,7 @@
       PLAYER_SPEED = 5,
       V_CELLS = 25,
       H_CELLS = 15,
-      DEBUG = true,
+      DEBUG = false,
       document = window.document,
       canv = document.getElementsByTagName('canvas')[0],
       ctx = canv.getContext('2d'),
@@ -30,8 +30,6 @@
   ];
   
   var socket = io.connect('http://' + domain);
-  
-  socket.emit('new player', sessionID);
   
   socket.on('room', function(newRoom) {
     var player;
@@ -233,7 +231,13 @@
     }
   });
   
-  loader.addCompletionListener(loop.start);
+  loader.addCompletionListener(function(){
+    KeyboardJS.on('enter', function(){
+      canv.className = '';
+      socket.emit('new player', sessionID);
+      loop.start();
+    });
+  });
   loader.start();
   
 })(this, this.io, this.Math2, this.KeyboardJS, this.PxLoader, this.sessionID, this.domain);

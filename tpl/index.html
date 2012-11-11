@@ -2,15 +2,16 @@
 <html lang="en">
 <head>
 	<meta charset="utf-8" />
-	<title>YOLO</title>
+	<title>Julian Assange and the clones</title>
 	<style>
 			html { display: table; width: 100%; height: 100%; color: #fff; background: #000; }
 			body { display: table-cell; vertical-align:middle; margin: 0; }
 			canvas { display: block; margin: 0 auto; background: #54545a url(/ground.png) repeat; }
+			canvas.start { background-image: url(/splash.png); }
 	</style>
 </head>
 <body>
-	<canvas></canvas>
+	<canvas class="start"></canvas>
 	<script>
 		this.sessionID = "<%= sessionID %>";
 		this.domain = "<%= domain %>";
