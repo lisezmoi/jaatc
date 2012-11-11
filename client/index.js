@@ -3,6 +3,7 @@
       PLAYER_SPEED = 5,
       V_CELLS = 25,
       H_CELLS = 15,
+      DEBUG = true,
       document = window.document,
       canv = document.getElementsByTagName('canvas')[0],
       ctx = canv.getContext('2d'),
@@ -56,16 +57,27 @@
     drawRoom(room);
   });
   
+  var vectorsCollide = function(a, b){
+    return (Math.abs(a.position.x - b.position.x) * 2 < (a.dimensions.x + b.dimensions.x)) &&
+           (Math.abs(a.position.y - b.position.y) * 2 < (a.dimensions.y + b.dimensions.y));
+  };
+  
   var Player = function(){
     this.position = new Vector2D(0, 0);
     this.direction = new Vector2D(0, 0);
     this.dimensions = new Vector2D(TILE_SIZE, TILE_SIZE);
   };
   Player.prototype.draw = function(){
+    var playerImage;
+    if (DEBUG) {
+      ctx.strokeStyle = 'rgba(255,0,0,.5)';
+      ctx.strokeRect(Math.round(this.position.x - this.dimensions.x/2) + 0.5, Math.round(this.position.y - this.dimensions.y/2) + 0.5, this.dimensions.x, this.dimensions.y);
+    }
     ctx.save();
     ctx.translate(this.position.x, this.position.y);
     ctx.rotate(this.direction.getAngle());
-    ctx.drawImage(this.speed? this.walkImage() : images.playerIdle, -this.dimensions.x/2, -this.dimensions.y/2, this.dimensions.x, this.dimensions.y);
+    playerImage = this.speed? this.walkImage() : images.playerIdle;
+    ctx.drawImage(playerImage, Math.round(-this.dimensions.x/2), Math.round(-this.dimensions.y/2), this.dimensions.x, this.dimensions.y);
     ctx.restore();
   };
   Player.prototype.walkImage = function(){
@@ -79,13 +91,76 @@
         return images.playerWalk[i];
       }
     }
+    return images.playerWalk[0];
+  };
+  
+  var getDoorVectors = function(side, coordinates) {
+    var position = new Vector2D(TILE_SIZE/2, TILE_SIZE/2),
+        dimensions = new Vector2D(TILE_SIZE, TILE_SIZE);
+    
+    switch (side) {
+      case 1:
+        position.x = canvWidth - TILE_SIZE/2;
+        break;
+      case 2:
+        position.y = canvHeight - TILE_SIZE/2;
+        break;
+    }
+    
+    if (side === 0 || side === 2) {
+      dimensions.y /= 2;
+      if (side === 0) {
+        position.y -= dimensions.y/2;
+      } else {
+        position.y += dimensions.y/2;
+      }
+      position.x = position.x + (coordinates * Math.round(canvWidth / H_CELLS));
+      
+    } else if (side === 1 || side === 3) {
+      dimensions.x /= 2;
+      if (side === 3) {
+        position.x -= dimensions.x/2;
+      } else {
+        position.x += dimensions.x/2;
+      }
+      position.y = position.y + (coordinates * Math.round(canvHeight / V_CELLS));
+    }
+    
+    return {
+      position: position,
+      dimensions: dimensions
+    };
+  };
+  
+  var drawDoor = function(side, coordinates) {
+    var door = getDoorVectors(side, coordinates);
+    ctx.fillStyle = 'rgba(0,0,0,.3)';
+    ctx.fillRect(door.position.x - door.dimensions.x/2, door.position.y - door.dimensions.y/2, door.dimensions.x, door.dimensions.y);
+    if (DEBUG) {
+      ctx.strokeStyle = 'rgba(255,0,0,.5)';
+      ctx.strokeRect(Math.round(door.position.x - door.dimensions.x/2) + 0.5, Math.round(door.position.y - door.dimensions.y/2) + 0.5, door.dimensions.x, door.dimensions.y);
+    }
   };
   
   var drawRoom = function(room) {
-    // for (var i=0; i < room.doors.length; i++) {
-    //   if ()
-    //   room.doors[i]
-    // }
+    for (var i=0; i < room.doors.length; i++) {
+      if (room.doors[i] > -1) {
+        drawDoor(i, room.doors[i]);
+      }
+    }
+  };
+  
+  var doorCollision = function(player){
+    var door;
+    for (var i=0; i < room.doors.length; i++) {
+      if (room.doors[i] > -1) {
+        door = getDoorVectors(i, room.doors[i]);
+        if (vectorsCollide(door, player)) {
+          return true;
+        }
+      }
+    }
+    return false;
   };
   
   // Keyboard
@@ -126,6 +201,8 @@
     }
     cPlayer.direction.normalize();
     
+    var doorCollide = doorCollision(cPlayer);
+    
     // Move
     cPlayer.position.add(Vector2D.multiply(cPlayer.direction, cPlayer.speed));
     // Limits
@@ -142,6 +219,11 @@
     
     // Drawing
     canv.width = canvWidth;
+    
+    if (DEBUG && doorCollide) {
+      ctx.fillStyle = 'red';
+      ctx.fillRect(0,0,10,10);
+    }
     
     drawRoom(room);
     
