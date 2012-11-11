@@ -1,8 +1,8 @@
 (function(window, io, Math2, KeyboardJS, PxLoader, sessionID, domain){
   var TILE_SIZE = 32,
       PLAYER_SPEED = 5,
-      V_CELLS = 25,
-      H_CELLS = 15,
+      H_CELLS = 25,
+      V_CELLS = 15,
       DEBUG = false,
       document = window.document,
       canv = document.getElementsByTagName('canvas')[0],
@@ -16,8 +16,8 @@
       canvHeight = 0,
       images = {};
   
-  canvWidth = canv.width = TILE_SIZE * V_CELLS; // 800
-  canvHeight = canv.height = TILE_SIZE * H_CELLS; // 480
+  canvWidth = canv.width = TILE_SIZE * H_CELLS; // 800
+  canvHeight = canv.height = TILE_SIZE * V_CELLS; // 480
   
   // Images to load
   images.playerIdle = loader.addImage('/player-idle.png');
@@ -35,7 +35,6 @@
     room = newRoom;
     console.log('room', room);
     updateRoomPlayers(room.players, true);
-    drawRoom(room);
   });
   
   socket.on('room players', function(players) {
@@ -148,7 +147,7 @@
       } else {
         position.y += dimensions.y/2;
       }
-      position.x = position.x + (coordinates * Math.round(canvWidth / H_CELLS));
+      position.x = position.x + (coordinates * TILE_SIZE);
       
     } else if (side === 1 || side === 3) {
       dimensions.x /= 2;
@@ -157,7 +156,7 @@
       } else {
         position.x += dimensions.x/2;
       }
-      position.y = position.y + (coordinates * Math.round(canvHeight / V_CELLS));
+      position.y = position.y + (coordinates * TILE_SIZE);
     }
     
     return {
@@ -190,7 +189,7 @@
       if (room.doors[i] > -1) {
         door = getDoorVectors(i, room.doors[i]);
         if (vectorsCollide(door, player)) {
-          return true;
+          return i;
         }
       }
     }
@@ -237,7 +236,13 @@
     }
     cPlayer.direction.normalize();
     
-    var doorCollide = doorCollision(cPlayer);
+    var doorCollided = doorCollision(cPlayer);
+    if (doorCollided !== false) {
+      socket.emit('door collision', {
+        doorIndex: doorCollided,
+        player: cPlayer.export()
+      });
+    }
     
     // Caches the player position / direction
     if (!cPlayerLastPosition) {
@@ -288,7 +293,7 @@
     // Drawing
     canv.width = canvWidth;
     
-    if (DEBUG && doorCollide) {
+    if (DEBUG && doorCollided) {
       ctx.fillStyle = 'red';
       ctx.fillRect(0,0,10,10);
     }

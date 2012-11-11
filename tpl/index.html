@@ -7,11 +7,11 @@
 			html { display: table; width: 100%; height: 100%; color: #fff; background: #000; }
 			body { display: table-cell; vertical-align:middle; margin: 0; }
 			canvas { display: block; margin: 0 auto; background: #54545a url(/ground.png) repeat; }
-			canvas.start { background-image: url(/splash.png); }
+			canvas.start { background: #000 url(/splash.png); background-size: 100%; }
 	</style>
 </head>
 <body>
-	<canvas class="start"></canvas>
+	<canvas class="start" width="800" height="480"></canvas>
 	<script>
 		this.sessionID = "<%= sessionID %>";
 		this.domain = "<%= domain %>";
