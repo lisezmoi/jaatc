@@ -232,10 +232,12 @@
   });
   
   loader.addCompletionListener(function(){
-    KeyboardJS.on('enter', function(){
+    var keyBind = KeyboardJS.on('enter');
+    keyBind.on('keydown', function(){
       canv.className = '';
       socket.emit('new player', sessionID);
       loop.start();
+      keyBind.clear();
     });
   });
   loader.start();
