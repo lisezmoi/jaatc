@@ -239,6 +239,14 @@
     
     var doorCollide = doorCollision(cPlayer);
     
+    // Caches the player position / direction
+    if (!cPlayerLastPosition) {
+      cPlayerLastPosition = new Vector2D(cPlayer.position);
+    }
+    if (!cPlayerLastDirection) {
+      cPlayerLastDirection = new Vector2D(cPlayer.direction);
+    }
+    
     // Move
     cPlayer.position.add(Vector2D.multiply(cPlayer.direction, cPlayer.speed));
     // Limits
@@ -252,14 +260,24 @@
     } else if (cPlayer.position.y < cPlayer.dimensions.y/2) {
       cPlayer.position.y = cPlayer.dimensions.y/2;
     }
+    for (var i=0; i < players.length; i++) {
+      if (vectorsCollide(players[i], cPlayer)) {
+        var newPosX = new Vector2D(cPlayerLastPosition);
+        newPosX.x = cPlayer.position.x;
+        var newPosY = new Vector2D(cPlayerLastPosition);
+        newPosY.y = cPlayer.position.y;
+        if (!vectorsCollide(players[i], {position: newPosX, dimensions: cPlayer.dimensions})) {
+          cPlayer.position = newPosX;
+        } else if (!vectorsCollide(players[i], {position: newPosY, dimensions: cPlayer.dimensions})) {
+          cPlayer.position = newPosY;
+        } else {
+          cPlayer.position = new Vector2D(cPlayerLastPosition);
+        }
+        break;
+      }
+    }
     
     // Update position
-    if (!cPlayerLastPosition) {
-      cPlayerLastPosition = new Vector2D(cPlayer.position);
-    }
-    if (!cPlayerLastDirection) {
-      cPlayerLastDirection = new Vector2D(cPlayer.direction);
-    }
     if (!Vector2D.equals(cPlayer.position, cPlayerLastPosition) || !Vector2D.equals(cPlayer.direction, cPlayerLastDirection) || cPlayer.speed !== cPlayerLastSpeed) {
       socket.emit('new position', cPlayer.export());
       cPlayerLastPosition = new Vector2D(cPlayer.position);
@@ -281,8 +299,8 @@
     cPlayer.draw();
     
     // Draw players
-    for (var i=0; i < players.length; i++) {
-      players[i].draw();
+    for (var j=0; j < players.length; j++) {
+      players[j].draw();
     }
   });
   
