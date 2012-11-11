@@ -1,4 +1,4 @@
-(function(window, io, Math2, KeyboardJS, PxLoader, sessionID){
+(function(window, io, Math2, KeyboardJS, PxLoader, sessionID, domain){
   var TILE_SIZE = 32,
       PLAYER_SPEED = 5,
       V_CELLS = 25,
@@ -28,7 +28,7 @@
     loader.addImage('/player-walk-5.png')
   ];
   
-  var socket = io.connect('http://localhost');
+  var socket = io.connect('http://' + domain);
   
   socket.emit('new player', sessionID);
   
@@ -154,4 +154,4 @@
   loader.addCompletionListener(loop.start);
   loader.start();
   
-})(this, this.io, this.Math2, this.KeyboardJS, this.PxLoader, this.sessionID);
+})(this, this.io, this.Math2, this.KeyboardJS, this.PxLoader, this.sessionID, this.domain);

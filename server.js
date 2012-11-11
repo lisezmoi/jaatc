@@ -24,7 +24,11 @@ httpApp.use(express.cookieParser('srautie nrauet eauits'));
 httpApp.use(express.session());
 
 httpApp.get('/', function(req, res){
-  res.render('index.html', {sessionID: req.sessionID}, function(err, html){
+  var params = {
+    sessionID: req.sessionID,
+    domain: process.env.PROD_DOMAIN || 'localhost'
+  };
+  res.render('index.html', params, function(err, html){
     res.send(html);
   });
 });
