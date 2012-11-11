@@ -84,9 +84,28 @@
     }
   };
   
-  var vectorsCollide = function(a, b){
+  var vectorsCollide = function(a, b) {
     return (Math.abs(a.position.x - b.position.x) * 2 < (a.dimensions.x + b.dimensions.x)) &&
            (Math.abs(a.position.y - b.position.y) * 2 < (a.dimensions.y + b.dimensions.y));
+  };
+  
+  var intersectDepthVectors = function(a, b) {
+    // Calculate current and minimum-non-intersecting distances between centers.
+    var distanceX = a.position.x - b.position.x;
+    var distanceY = a.position.y - b.position.y;
+    var minDistanceX = a.dimensions.x/2 + b.dimensions.x/2;
+    var minDistanceY = a.dimensions.y/2 + b.dimensions.y/2;
+
+    // If we are not intersecting at all, return (0, 0).
+    if (Math.abs(distanceX) >= minDistanceX || Math.abs(distanceY) >= minDistanceY) {
+      return new Vector2D(0,0);
+    }
+      
+    // Calculate and return intersection depths.
+    depthX = distanceX > 0 ? minDistanceX - distanceX : -minDistanceX - distanceX;
+    depthY = distanceY > 0 ? minDistanceY - distanceY : -minDistanceY - distanceY;
+    
+    return new Vector2D(depthX, depthY);
   };
   
   var Player = function(){
@@ -269,18 +288,10 @@
       cPlayer.position.y = cPlayer.dimensions.y/2;
     }
     for (var i=0; i < players.length; i++) {
-      if (vectorsCollide(players[i], cPlayer)) {
-        var newPosX = new Vector2D(cPlayerLastPosition);
-        newPosX.x = cPlayer.position.x;
-        var newPosY = new Vector2D(cPlayerLastPosition);
-        newPosY.y = cPlayer.position.y;
-        if (!vectorsCollide(players[i], {position: newPosX, dimensions: cPlayer.dimensions})) {
-          cPlayer.position = newPosX;
-        } else if (!vectorsCollide(players[i], {position: newPosY, dimensions: cPlayer.dimensions})) {
-          cPlayer.position = newPosY;
-        } else {
-          cPlayer.position = new Vector2D(cPlayerLastPosition);
-        }
+      
+      var intersectVector = intersectDepthVectors(cPlayer, players[i]);
+      if (!(intersectVector.x === 0 && intersectVector.y === 0) ) {
+        cPlayer.position = new Vector2D(cPlayer.position.x + intersectVector.x, cPlayer.position.y + intersectVector.y);
         break;
       }
     }
