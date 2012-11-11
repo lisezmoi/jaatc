@@ -49,6 +49,14 @@ io.sockets.on('connection', function(socket) {
       socket.emit('room', newRoom);
     });
   });
+  socket.on('message', function(data) {
+    if (!data.player || !data.message) return;
+    var player = world.getPlayerById(data.player);
+    if (!player) { return; }
+    world.getRoomByPlayerId(player.id, function(err, room) {
+      socket.broadcast.to(room.id).emit('message', data);
+    });
+  });
 });
 
 httpApp.set('views', __dirname + '/tpl');

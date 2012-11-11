@@ -5,7 +5,7 @@
       V_CELLS = 15,
       DEBUG = false,
       document = window.document,
-      canv = document.getElementsByTagName('canvas')[0],
+      canv = document.querySelector('canvas'),
       ctx = canv.getContext('2d'),
       Vector2D = Math2.Vector2D,
       loader = new PxLoader(),
@@ -56,8 +56,25 @@
       }
     }
   });
+
+  socket.on('message', function(data) {
+    for (var i=0; i < players.length; i++) {
+      if (players[i].id === data.player) {
+        players[i].say(data.message);
+      }
+    }
+  });
   
   var updateRoomPlayers = function(newPlayers, updateCPlayer){
+    
+    // Clear chat bubbles
+    for (var i=0; i < players.length; i++) {
+      players[i].clearSay();
+    }
+    if (updateCPlayer && cPlayer) {
+      cPlayer.clearSay();
+    }
+    
     players = [];
     var player;
     for (var i=0; i < newPlayers.length; i++) {
@@ -108,6 +125,20 @@
     return new Vector2D(depthX, depthY);
   };
   
+  var initTalk = function(){
+    var keyBind = KeyboardJS.on('s');
+    keyBind.on('keydown', function(){
+      var msg = window.prompt('Message:');
+      if (msg) {
+        socket.emit('message', {
+          player: cPlayer.id,
+          message: msg
+        });
+        cPlayer.say(msg);
+      }
+    });
+  };
+  
   var Player = function(){
     this.position = new Vector2D(0, 0);
     this.direction = new Vector2D(0, 0);
@@ -125,6 +156,7 @@
     playerImage = this.speed? this.walkImage() : images.playerIdle;
     ctx.drawImage(playerImage, Math.round(-this.dimensions.x/2), Math.round(-this.dimensions.y/2), this.dimensions.x, this.dimensions.y);
     ctx.restore();
+    this.positionSay();
   };
   Player.prototype.walkImage = function(){
     var now = Date.now(),
@@ -146,6 +178,37 @@
       speed: this.speed,
       id: this.id
     };
+  };
+  Player.prototype.positionSay = function(){
+    if (!this.bubble || !this.bubbleRects) return;
+    this.bubble.style.top = (this.bubbleRects.canv.top + this.position.y - this.bubbleRects.bubble.height - this.dimensions.y/2 - 10) + 'px';
+    this.bubble.style.left = (this.bubbleRects.canv.left + this.position.x - this.bubbleRects.bubble.width/2) + 'px';
+  };
+  Player.prototype.clearSay = function(){
+    if (this.bubble) {
+      if (this.sayTimeout) {
+        window.clearTimeout(this.sayTimeout);
+        this.sayTimeout = null;
+      }
+      document.body.removeChild(this.bubble);
+      this.bubble = null;
+      this.bubbleRects = null;
+    }
+  };
+  Player.prototype.say = function(msg){
+    var self = this;
+    this.clearSay();
+    this.bubble = document.createElement('p');
+    this.bubble.className = 'bubble';
+    this.bubble.textContent = msg;
+    document.body.appendChild(this.bubble);
+    this.bubbleRects = {};
+    this.bubbleRects.bubble = this.bubble.getBoundingClientRect();
+    this.bubbleRects.canv = canv.getBoundingClientRect();
+    this.positionSay();
+    this.sayTimeout = window.setTimeout(function(){
+      self.clearSay();
+    }, 5000);
   };
   
   var getDoorVectors = function(side, coordinates) {
@@ -329,6 +392,8 @@
       canv.className = '';
       socket.emit('new player', sessionID);
       loop.start();
+      
+      initTalk();
       keyBind.clear();
     });
   });
