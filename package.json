@@ -13,7 +13,8 @@
   "dependencies": {
     "socket.io": "~0.9.11",
     "express": "~3.0.2",
-    "ejs": "~0.8.3"
+    "ejs": "~0.8.3",
+    "underscore": "~1.4.2"
   },
   "engines": {
     "node": "0.8.x"

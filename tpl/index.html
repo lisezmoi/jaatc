@@ -5,12 +5,20 @@
 	<title>YOLO</title>
 	<style>
 			html { display: table; width: 100%; height: 100%; color: #fff; background: #000; }
-			body { display: table-cell; vertical-align:middle; text-align:center; margin: 0; }
-			canvas { background: #333; }
+			body { display: table-cell; vertical-align:middle; margin: 0; }
+			canvas { display: block; margin: 0 auto; background: #333; }
 	</style>
 </head>
 <body>
 	<canvas></canvas>
+	<script>
+		this.sessionID = "<%= sessionID %>";
+	</script>
+	<script src="/socket.io/socket.io.js"></script>
+	<script src="/raf.js"></script>
+	<script src="/math2.js"></script>
+	<script src="/loop.js"></script>
+	<script src="/keyboard.js"></script>
 	<script src="/index.js"></script>
 </body>
 </html>
