@@ -9,11 +9,29 @@ var http = require('http'),
 
 var world = getWorld(rooms);
 
+io.set('log level', 1);
+
 io.sockets.on('connection', function(socket) {
   socket.on('new player', function(sessionID) {
     world.addPlayer(sessionID, function(room){
+      socket.join(room.id);
       socket.emit('room', room);
+      socket.broadcast.to(room.id).emit('room players', room.players);
     });
+  });
+  socket.on('new position', function(exportPlayer) {
+    if (!exportPlayer || !exportPlayer.id || !exportPlayer.position) return;
+    var player = world.getPlayerById(exportPlayer.id);
+    if (player) {
+      player.position.x = exportPlayer.position.x;
+      player.position.y = exportPlayer.position.y;
+      player.direction.x = exportPlayer.direction.x;
+      player.direction.y = exportPlayer.direction.y;
+      player.speed = exportPlayer.speed;
+      world.getRoomByPlayerId(player.id, function(err, playerRoom){
+        socket.broadcast.to(playerRoom.id).emit('player update', player);
+      });
+    }
   });
 });
 

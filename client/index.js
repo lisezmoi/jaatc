@@ -32,28 +32,56 @@
   var socket = io.connect('http://' + domain);
   
   socket.on('room', function(newRoom) {
-    var player;
     room = newRoom;
     console.log('room', room);
-    for (var i=0; i < room.players.length; i++) {
+    updateRoomPlayers(room.players, true);
+    drawRoom(room);
+  });
+  
+  socket.on('room players', function(players) {
+    if (!cPlayer) return;
+    updateRoomPlayers(players);
+  });
+  
+  // Updates a single player
+  socket.on('player update', function(player) {
+    for (var i=0; i < players.length; i++) {
+      if (players[i].id === player.id) {
+        players[i].position.x = player.position.x;
+        players[i].position.y = player.position.y;
+        players[i].direction.x = player.direction.x;
+        players[i].direction.y = player.direction.y;
+        players[i].speed = player.speed;
+      }
+    }
+  });
+  
+  var updateRoomPlayers = function(newPlayers, updateCPlayer){
+    players = [];
+    var player;
+    for (var i=0; i < newPlayers.length; i++) {
+      
+      if (newPlayers[i].id === sessionID && !updateCPlayer) {
+        continue;
+      }
       
       player = new Player();
-      player.id = room.players[i].id;
-      player.dimensions.x = room.players[i].dimensions.x;
-      player.dimensions.y = room.players[i].dimensions.y;
-      player.position.x = room.players[i].position.x;
-      player.position.y = room.players[i].position.y;
-      player.direction.x = room.players[i].direction.x;
-      player.direction.y = room.players[i].direction.y;
+      player.id = newPlayers[i].id;
+      player.dimensions.x = newPlayers[i].dimensions.x;
+      player.dimensions.y = newPlayers[i].dimensions.y;
+      player.position.x = newPlayers[i].position.x;
+      player.position.y = newPlayers[i].position.y;
+      player.direction.x = newPlayers[i].direction.x;
+      player.direction.y = newPlayers[i].direction.y;
       player.direction.normalize();
       
       if (player.id === sessionID) {
         cPlayer = player;
+      } else {
+        players.push(player);
       }
-      players.push(player);
     }
-    drawRoom(room);
-  });
+  };
   
   var vectorsCollide = function(a, b){
     return (Math.abs(a.position.x - b.position.x) * 2 < (a.dimensions.x + b.dimensions.x)) &&
@@ -90,6 +118,14 @@
       }
     }
     return images.playerWalk[0];
+  };
+  Player.prototype.export = function(){
+    return {
+      position: this.position,
+      direction: this.direction,
+      speed: this.speed,
+      id: this.id
+    };
   };
   
   var getDoorVectors = function(side, coordinates) {
@@ -167,8 +203,10 @@
     return activeKeys.indexOf(key) !== -1;
   };
   
+  var cPlayerLastPosition, cPlayerLastDirection, cPlayerLastSpeed = 0;
+  
   var loop = makeLoop(30, function(now){
-    if (!room) return;
+    if (!room || !cPlayer) return;
     
     activeKeys = KeyboardJS.activeKeys();
     cPlayer.speed = 0;
@@ -215,6 +253,20 @@
       cPlayer.position.y = cPlayer.dimensions.y/2;
     }
     
+    // Update position
+    if (!cPlayerLastPosition) {
+      cPlayerLastPosition = new Vector2D(cPlayer.position);
+    }
+    if (!cPlayerLastDirection) {
+      cPlayerLastDirection = new Vector2D(cPlayer.direction);
+    }
+    if (!Vector2D.equals(cPlayer.position, cPlayerLastPosition) || !Vector2D.equals(cPlayer.direction, cPlayerLastDirection) || cPlayer.speed !== cPlayerLastSpeed) {
+      socket.emit('new position', cPlayer.export());
+      cPlayerLastPosition = new Vector2D(cPlayer.position);
+      cPlayerLastDirection = new Vector2D(cPlayer.direction);
+      cPlayerLastSpeed = cPlayer.speed;
+    }
+    
     // Drawing
     canv.width = canvWidth;
     
@@ -224,6 +276,9 @@
     }
     
     drawRoom(room);
+    
+    // Draw controlled player
+    cPlayer.draw();
     
     // Draw players
     for (var i=0; i < players.length; i++) {

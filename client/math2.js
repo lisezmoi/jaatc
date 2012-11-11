@@ -119,6 +119,12 @@
     }
     return new Vector2D({x: v1.x / v2.x, y: v1.y / v2.y});
   };
+  Vector2D.equals = function(v1, v2) {
+    if (isNumber(v2)) {
+      v2 = {x: v2, y: v2};
+    }
+    return v1.x === v2.x && v1.y === v2.y;
+  };
   Vector2D.normalize = function(v) {
     return (new Vector2D(v)).normalize();
   };
