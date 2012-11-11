@@ -14,7 +14,8 @@
       cPlayer = null,
       canvWidth = 0,
       canvHeight = 0,
-      images = {};
+      images = {},
+      waitRoomChange = false;
   
   canvWidth = canv.width = TILE_SIZE * H_CELLS; // 800
   canvHeight = canv.height = TILE_SIZE * V_CELLS; // 480
@@ -35,6 +36,7 @@
     room = newRoom;
     console.log('room', room);
     updateRoomPlayers(room.players, true);
+    waitRoomChange = false;
   });
   
   socket.on('room players', function(players) {
@@ -237,11 +239,12 @@
     cPlayer.direction.normalize();
     
     var doorCollided = doorCollision(cPlayer);
-    if (doorCollided !== false) {
+    if (doorCollided !== false && !waitRoomChange) {
       socket.emit('door collision', {
         doorIndex: doorCollided,
         player: cPlayer.export()
       });
+      waitRoomChange = true;
     }
     
     // Caches the player position / direction
