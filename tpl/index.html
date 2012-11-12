@@ -6,8 +6,8 @@
 	<style>
 			html { display: table; width: 100%; height: 100%; color: #fff; background: #000; }
 			body { display: table-cell; vertical-align:middle; margin: 0; }
-			canvas { display: block; margin: 0 auto; background: #54545a url(/ground.png) repeat; }
-			canvas.start { background: #000 url(/splash.png); background-size: 100%; }
+			canvas { display: block; margin: 0 auto; background: #54545a url(/img/ground.png) repeat; }
+			canvas.start { background: #000 url(/img/splash.png); background-size: 100%; }
 			p.bubble { overflow: hidden; position: absolute; max-width: 150px; margin: 0; font: 14px/20px sans-serif; color: #000; }
 	</style>
 </head>
@@ -17,13 +17,13 @@
 		this.sessionID = "<%= sessionID %>";
 		this.domain = "<%= domain %>";
 	</script>
-	<script src="/socket.io/socket.io.js"></script>
-	<script src="/raf.js"></script>
-	<script src="/math2.js"></script>
-	<script src="/loop.js"></script>
-	<script src="/keyboard.js"></script>
-	<script src="/PxLoader.js"></script>
-	<script src="/PxLoaderImage.js"></script>
-	<script src="/index.js"></script>
+	<script src="/socket.io/socket.io.js"></script><%
+	for (var i in scripts) {
+		if (debugmode) for (var j = 0; j < scripts[i].length; j++) { %>
+	<script src="/<%= scripts[i][j] %>"></script><%
+		} else { %>
+	<script src="/<%= i %>"></script><%
+		}
+	} %>
 </body>
 </html>

@@ -21,13 +21,13 @@
   canvHeight = canv.height = TILE_SIZE * V_CELLS; // 480
   
   // Images to load
-  images.playerIdle = loader.addImage('/player-idle.png');
+  images.playerIdle = loader.addImage('/img/player-idle.png');
   images.playerWalk = [
-    loader.addImage('/player-walk-1.png'),
-    loader.addImage('/player-walk-2.png'),
-    loader.addImage('/player-walk-3.png'),
-    loader.addImage('/player-walk-4.png'),
-    loader.addImage('/player-walk-5.png')
+    loader.addImage('/img/player-walk-1.png'),
+    loader.addImage('/img/player-walk-2.png'),
+    loader.addImage('/img/player-walk-3.png'),
+    loader.addImage('/img/player-walk-4.png'),
+    loader.addImage('/img/player-walk-5.png')
   ];
   
   var socket = io.connect('http://' + domain);

@@ -1,0 +1,11 @@
+{
+  "app.min.js": [
+    "raf.js",
+    "math2.js",
+    "loop.js",
+    "keyboard.js",
+    "PxLoader.js",
+    "PxLoaderImage.js",
+    "index.js"
+  ]
+}

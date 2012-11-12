@@ -1,13 +1,10 @@
-var http = require('http'),
-    fs = require('fs'),
-    express = require('express'),
-    httpApp = express(),
-    httpServer = http.createServer(httpApp),
-    io = require('socket.io').listen(httpServer),
-    rooms = require('./rooms.json'),
-    getWorld = require('./lib/world');
-
-var world = getWorld(rooms);
+var http      = require('http');
+var fs        = require('fs');
+var webserver = require('./lib/webserver')();
+var io        = require('socket.io').listen(webserver.httpServer);
+var rooms     = require('./rooms.json');
+var world     = require('./lib/world')(rooms);
+const DEBUG   = process.env.NODE_ENV !== 'production';
 
 io.set('log level', 1);
 
@@ -59,32 +56,38 @@ io.sockets.on('connection', function(socket) {
   });
 });
 
-httpApp.set('views', __dirname + '/tpl');
-httpApp.engine('html', require('ejs').renderFile);
-httpApp.use(express['static'](__dirname + '/client'));
-httpApp.use(express.cookieParser('srautie nrauet eauits'));
-httpApp.use(express.session());
+var browserScripts = require(__dirname + '/browser/scripts.json');
 
-httpApp.get('/', function(req, res){
+webserver.configure(function(httpApp, express) {
+  httpApp.set('views', __dirname + '/tpl');
+  httpApp.use(express.static(__dirname + '/browser'));
+  httpApp.use(express.cookieParser('srautie nrauet eauits'));
+  httpApp.use(express.session());
+});
+
+webserver.compressJS(browserScripts, __dirname + '/browser');
+
+webserver.httpApp.get('/', function(req, res){
   var params = {
     sessionID: req.sessionID,
-    domain: process.env.PROD_DOMAIN || 'localhost'
+    domain: process.env.PROD_DOMAIN || 'localhost',
+    scripts: browserScripts,
+    debugmode: DEBUG
   };
   res.render('index.html', params, function(err, html){
     res.send(html);
   });
 });
 
-httpApp.get('/debug', function(req, res){
+webserver.httpApp.get('/debug', function(req, res){
   res.render('debug.html', function(err, html){
     res.send(html);
   });
 });
 
-httpApp.get('/rooms.json', function(req, res){
+webserver.httpApp.get('/rooms.json', function(req, res){
   res.send(rooms);
 });
 
-httpServer.listen(8000);
-
+webserver.listen(8000);
 console.log('Server running at http://0.0.0.0:8000/');
