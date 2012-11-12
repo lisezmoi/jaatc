@@ -33,6 +33,30 @@ io.sockets.on('connection', function(socket) {
       });
     }
   });
+  socket.on('door collision', function(data) {
+    var exportPlayer = data.player,
+        doorIndex = data.doorIndex,
+        newRoom;
+    if (!exportPlayer || !exportPlayer.id || !exportPlayer.position) return;
+    var player = world.getPlayerById(exportPlayer.id);
+    if (!player) { return; }
+    world.getRoomByPlayerId(player.id, function(err, oldRoom){
+      var newRoom = world.changeRoom(player, oldRoom, doorIndex);
+      socket.leave(oldRoom.id);
+      socket.broadcast.to(oldRoom.id).emit('room players', oldRoom.players);
+      socket.join(newRoom.id);
+      socket.broadcast.to(newRoom.id).emit('room players', newRoom.players);
+      socket.emit('room', newRoom);
+    });
+  });
+  socket.on('message', function(data) {
+    if (!data.player || !data.message) return;
+    var player = world.getPlayerById(data.player);
+    if (!player) { return; }
+    world.getRoomByPlayerId(player.id, function(err, room) {
+      socket.broadcast.to(room.id).emit('message', data);
+    });
+  });
 });
 
 httpApp.set('views', __dirname + '/tpl');

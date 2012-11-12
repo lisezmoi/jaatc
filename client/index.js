@@ -1,11 +1,11 @@
 (function(window, io, Math2, KeyboardJS, PxLoader, sessionID, domain){
   var TILE_SIZE = 32,
       PLAYER_SPEED = 5,
-      V_CELLS = 25,
-      H_CELLS = 15,
+      H_CELLS = 25,
+      V_CELLS = 15,
       DEBUG = false,
       document = window.document,
-      canv = document.getElementsByTagName('canvas')[0],
+      canv = document.querySelector('canvas'),
       ctx = canv.getContext('2d'),
       Vector2D = Math2.Vector2D,
       loader = new PxLoader(),
@@ -14,10 +14,11 @@
       cPlayer = null,
       canvWidth = 0,
       canvHeight = 0,
-      images = {};
+      images = {},
+      waitRoomChange = false;
   
-  canvWidth = canv.width = TILE_SIZE * V_CELLS; // 800
-  canvHeight = canv.height = TILE_SIZE * H_CELLS; // 480
+  canvWidth = canv.width = TILE_SIZE * H_CELLS; // 800
+  canvHeight = canv.height = TILE_SIZE * V_CELLS; // 480
   
   // Images to load
   images.playerIdle = loader.addImage('/player-idle.png');
@@ -35,7 +36,7 @@
     room = newRoom;
     console.log('room', room);
     updateRoomPlayers(room.players, true);
-    drawRoom(room);
+    waitRoomChange = false;
   });
   
   socket.on('room players', function(players) {
@@ -55,8 +56,25 @@
       }
     }
   });
+
+  socket.on('message', function(data) {
+    for (var i=0; i < players.length; i++) {
+      if (players[i].id === data.player) {
+        players[i].say(data.message);
+      }
+    }
+  });
   
   var updateRoomPlayers = function(newPlayers, updateCPlayer){
+    
+    // Clear chat bubbles
+    for (var i=0; i < players.length; i++) {
+      players[i].clearSay();
+    }
+    if (updateCPlayer && cPlayer) {
+      cPlayer.clearSay();
+    }
+    
     players = [];
     var player;
     for (var i=0; i < newPlayers.length; i++) {
@@ -83,9 +101,42 @@
     }
   };
   
-  var vectorsCollide = function(a, b){
+  var vectorsCollide = function(a, b) {
     return (Math.abs(a.position.x - b.position.x) * 2 < (a.dimensions.x + b.dimensions.x)) &&
            (Math.abs(a.position.y - b.position.y) * 2 < (a.dimensions.y + b.dimensions.y));
+  };
+  
+  var intersectDepthVectors = function(a, b) {
+    // Calculate current and minimum-non-intersecting distances between centers.
+    var distanceX = a.position.x - b.position.x;
+    var distanceY = a.position.y - b.position.y;
+    var minDistanceX = a.dimensions.x/2 + b.dimensions.x/2;
+    var minDistanceY = a.dimensions.y/2 + b.dimensions.y/2;
+
+    // If we are not intersecting at all, return (0, 0).
+    if (Math.abs(distanceX) >= minDistanceX || Math.abs(distanceY) >= minDistanceY) {
+      return new Vector2D(0,0);
+    }
+      
+    // Calculate and return intersection depths.
+    depthX = distanceX > 0 ? minDistanceX - distanceX : -minDistanceX - distanceX;
+    depthY = distanceY > 0 ? minDistanceY - distanceY : -minDistanceY - distanceY;
+    
+    return new Vector2D(depthX, depthY);
+  };
+  
+  var initTalk = function(){
+    var keyBind = KeyboardJS.on('s');
+    keyBind.on('keydown', function(){
+      var msg = window.prompt('Message:');
+      if (msg) {
+        socket.emit('message', {
+          player: cPlayer.id,
+          message: msg
+        });
+        cPlayer.say(msg);
+      }
+    });
   };
   
   var Player = function(){
@@ -105,6 +156,7 @@
     playerImage = this.speed? this.walkImage() : images.playerIdle;
     ctx.drawImage(playerImage, Math.round(-this.dimensions.x/2), Math.round(-this.dimensions.y/2), this.dimensions.x, this.dimensions.y);
     ctx.restore();
+    this.positionSay();
   };
   Player.prototype.walkImage = function(){
     var now = Date.now(),
@@ -127,6 +179,37 @@
       id: this.id
     };
   };
+  Player.prototype.positionSay = function(){
+    if (!this.bubble || !this.bubbleRects) return;
+    this.bubble.style.top = (this.bubbleRects.canv.top + this.position.y - this.bubbleRects.bubble.height - this.dimensions.y/2 - 10) + 'px';
+    this.bubble.style.left = (this.bubbleRects.canv.left + this.position.x - this.bubbleRects.bubble.width/2) + 'px';
+  };
+  Player.prototype.clearSay = function(){
+    if (this.bubble) {
+      if (this.sayTimeout) {
+        window.clearTimeout(this.sayTimeout);
+        this.sayTimeout = null;
+      }
+      document.body.removeChild(this.bubble);
+      this.bubble = null;
+      this.bubbleRects = null;
+    }
+  };
+  Player.prototype.say = function(msg){
+    var self = this;
+    this.clearSay();
+    this.bubble = document.createElement('p');
+    this.bubble.className = 'bubble';
+    this.bubble.textContent = msg;
+    document.body.appendChild(this.bubble);
+    this.bubbleRects = {};
+    this.bubbleRects.bubble = this.bubble.getBoundingClientRect();
+    this.bubbleRects.canv = canv.getBoundingClientRect();
+    this.positionSay();
+    this.sayTimeout = window.setTimeout(function(){
+      self.clearSay();
+    }, 5000);
+  };
   
   var getDoorVectors = function(side, coordinates) {
     var position = new Vector2D(TILE_SIZE/2, TILE_SIZE/2),
@@ -148,7 +231,7 @@
       } else {
         position.y += dimensions.y/2;
       }
-      position.x = position.x + (coordinates * Math.round(canvWidth / H_CELLS));
+      position.x = position.x + (coordinates * TILE_SIZE);
       
     } else if (side === 1 || side === 3) {
       dimensions.x /= 2;
@@ -157,7 +240,7 @@
       } else {
         position.x += dimensions.x/2;
       }
-      position.y = position.y + (coordinates * Math.round(canvHeight / V_CELLS));
+      position.y = position.y + (coordinates * TILE_SIZE);
     }
     
     return {
@@ -190,7 +273,7 @@
       if (room.doors[i] > -1) {
         door = getDoorVectors(i, room.doors[i]);
         if (vectorsCollide(door, player)) {
-          return true;
+          return i;
         }
       }
     }
@@ -237,7 +320,22 @@
     }
     cPlayer.direction.normalize();
     
-    var doorCollide = doorCollision(cPlayer);
+    var doorCollided = doorCollision(cPlayer);
+    if (doorCollided !== false && !waitRoomChange) {
+      socket.emit('door collision', {
+        doorIndex: doorCollided,
+        player: cPlayer.export()
+      });
+      waitRoomChange = true;
+    }
+    
+    // Caches the player position / direction
+    if (!cPlayerLastPosition) {
+      cPlayerLastPosition = new Vector2D(cPlayer.position);
+    }
+    if (!cPlayerLastDirection) {
+      cPlayerLastDirection = new Vector2D(cPlayer.direction);
+    }
     
     // Move
     cPlayer.position.add(Vector2D.multiply(cPlayer.direction, cPlayer.speed));
@@ -252,14 +350,16 @@
     } else if (cPlayer.position.y < cPlayer.dimensions.y/2) {
       cPlayer.position.y = cPlayer.dimensions.y/2;
     }
+    for (var i=0; i < players.length; i++) {
+      
+      var intersectVector = intersectDepthVectors(cPlayer, players[i]);
+      if (!(intersectVector.x === 0 && intersectVector.y === 0) ) {
+        cPlayer.position = new Vector2D(cPlayer.position.x + intersectVector.x, cPlayer.position.y + intersectVector.y);
+        break;
+      }
+    }
     
     // Update position
-    if (!cPlayerLastPosition) {
-      cPlayerLastPosition = new Vector2D(cPlayer.position);
-    }
-    if (!cPlayerLastDirection) {
-      cPlayerLastDirection = new Vector2D(cPlayer.direction);
-    }
     if (!Vector2D.equals(cPlayer.position, cPlayerLastPosition) || !Vector2D.equals(cPlayer.direction, cPlayerLastDirection) || cPlayer.speed !== cPlayerLastSpeed) {
       socket.emit('new position', cPlayer.export());
       cPlayerLastPosition = new Vector2D(cPlayer.position);
@@ -270,7 +370,7 @@
     // Drawing
     canv.width = canvWidth;
     
-    if (DEBUG && doorCollide) {
+    if (DEBUG && doorCollided) {
       ctx.fillStyle = 'red';
       ctx.fillRect(0,0,10,10);
     }
@@ -281,8 +381,8 @@
     cPlayer.draw();
     
     // Draw players
-    for (var i=0; i < players.length; i++) {
-      players[i].draw();
+    for (var j=0; j < players.length; j++) {
+      players[j].draw();
     }
   });
   
@@ -292,6 +392,8 @@
       canv.className = '';
       socket.emit('new player', sessionID);
       loop.start();
+      
+      initTalk();
       keyBind.clear();
     });
   });
