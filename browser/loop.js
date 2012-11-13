@@ -1,14 +1,21 @@
 /* Usage:
-
-var loop = makeLoop(30, function(){
-  
-});
-
-loop.start();
-
+ *
+ * var loop = makeLoop(30, function(){
+ * 
+ * });
+ * 
+ * loop.start();
 */
-(function(window){
-  window.makeLoop = function(fps, callback, debug){
+(function(name, definition) {
+  if (typeof define == 'function') {
+    define(definition);
+  } else if (typeof module != 'undefined') {
+    module.exports = definition();
+  } else {
+    this[name] = definition();
+  }
+})('makeLoop', function(){
+  var makeLoop = function(fps, callback, debug){
     var reqAnimId, lastRenderTime, stats, loopFn, loop = {};
     
     if (debug) {
@@ -49,4 +56,6 @@ loop.start();
     
     return loop;
   };
-})(this);
+  
+  return makeLoop;
+});

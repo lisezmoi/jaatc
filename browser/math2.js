@@ -1,7 +1,15 @@
-(function(global){
+(function(name, definition) {
+  if (typeof define == 'function') {
+    define(definition);
+  } else if (typeof module != 'undefined') {
+    module.exports = definition();
+  } else {
+    this[name] = definition();
+  }
+})('Math2', function(){
   'use strict';
   
-  var Math2 = global.exports || (global.Math2 = {});
+  var Math2 = {};
   
   /* Check if an object is a number */
   var isNumber = function(obj) {
@@ -129,10 +137,11 @@
     return (new Vector2D(v)).normalize();
   };
   
-  
   /* Expose */
   Math2.isNumber = isNumber;
   Math2.randomInt = randomInt;
   Math2.map = map;
   Math2.Vector2D = Vector2D;
-})(this);
+  
+  return Math2;
+});

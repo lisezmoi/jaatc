@@ -1,11 +1,18 @@
-(function(window, io, Math2, KeyboardJS, PxLoader, sessionID, domain){
+/*jshint browser:true */
+define(['vendor/raf', 'vendor/PxLoader', 'vendor/PxLoaderImage', 'math2', 'loop', 'vendor/keyboard', 'socket.io/socket.io'],
+function(raf, PxLoader, PxLoaderImage, Math2, makeLoop, KeyboardJS, io) {
+'use strict';
+return function(params) {
+
   var TILE_SIZE = 32,
       PLAYER_SPEED = 5,
       H_CELLS = 25,
       V_CELLS = 15,
       DEBUG = false,
       document = window.document,
-      canv = document.querySelector('canvas'),
+      sessionID = params.sessionID,
+      domain = params.domain,
+      canv = params.canvas,
       ctx = canv.getContext('2d'),
       Vector2D = Math2.Vector2D,
       loader = new PxLoader(),
@@ -68,8 +75,8 @@
   var updateRoomPlayers = function(newPlayers, updateCPlayer){
     
     // Clear chat bubbles
-    for (var i=0; i < players.length; i++) {
-      players[i].clearSay();
+    for (var ci=0; ci < players.length; ci++) {
+      players[ci].clearSay();
     }
     if (updateCPlayer && cPlayer) {
       cPlayer.clearSay();
@@ -119,8 +126,8 @@
     }
       
     // Calculate and return intersection depths.
-    depthX = distanceX > 0 ? minDistanceX - distanceX : -minDistanceX - distanceX;
-    depthY = distanceY > 0 ? minDistanceY - distanceY : -minDistanceY - distanceY;
+    var depthX = distanceX > 0 ? minDistanceX - distanceX : -minDistanceX - distanceX;
+    var depthY = distanceY > 0 ? minDistanceY - distanceY : -minDistanceY - distanceY;
     
     return new Vector2D(depthX, depthY);
   };
@@ -398,5 +405,5 @@
     });
   });
   loader.start();
-  
-})(this, this.io, this.Math2, this.KeyboardJS, this.PxLoader, this.sessionID, this.domain);
+};
+});
