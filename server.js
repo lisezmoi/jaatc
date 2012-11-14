@@ -65,8 +65,6 @@ webserver.configure(function(httpApp, express) {
   httpApp.use(express.session());
 });
 
-webserver.compressJS(browserScripts, __dirname + '/browser');
-
 webserver.httpApp.get('/', function(req, res){
   var params = {
     sessionID: req.sessionID,
