@@ -16,4 +16,6 @@ $ npm start
 
 ## Play
 
-Use arrow keys to move, "s" to talk.
+- Arrow keys or WASD to move (configurable: click on the keys)
+- "S" to talk (temporarily disabled)
+- Spacebar to rotate the character (you can still move)
