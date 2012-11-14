@@ -13,3 +13,7 @@ $ npm install .
 ~~~sh
 $ npm start
 ~~~
+
+## Play
+
+Use arrow keys to move, "s" to talk.
