@@ -1,6 +1,6 @@
 /*jshint browser:true */
-define(['vendor/raf', 'vendor/PxLoader', 'vendor/PxLoaderImage', 'math2', 'loop', 'kib', 'socket.io/socket.io'],
-function(raf, PxLoader, PxLoaderImage, Math2, makeLoop, kib, io) {
+define(['vendor/raf', 'vendor/PxLoader', 'vendor/PxLoaderImage', 'math2', 'loop', 'kib', 'socket.io/socket.io', 'keys'],
+function(raf, PxLoader, PxLoaderImage, Math2, makeLoop, kib, io, Keys) {
 'use strict';
 return function(params) {
 
@@ -22,6 +22,7 @@ return function(params) {
       canvWidth = 0,
       canvHeight = 0,
       images = {},
+      mousePosition = new Vector2D(0, 0),
       waitRoomChange = false;
 
   canvWidth = canv.width = TILE_SIZE * H_CELLS; // 800
@@ -39,6 +40,10 @@ return function(params) {
 
   // Listen keyboard
   kib.start();
+  
+  // Keys (canvas)
+  var canvKeys = new Keys(5, canvHeight - 50, 30, 20, 5);
+  canvKeys.bindClick(canv);
 
   var socket = io.connect('http://' + domain);
 
@@ -136,6 +141,7 @@ return function(params) {
   };
 
   var initTalk = function(){
+    return;
     kib.on(83 /* S */, function(){
       var msg = window.prompt('Message:');
       if (msg) {
@@ -147,7 +153,14 @@ return function(params) {
       }
     });
   };
-  
+
+  var initMouse = function(){
+    canv.addEventListener('mousemove', function(e){
+      mousePosition.x = e.clientX - canv.offsetLeft;
+      mousePosition.y = e.clientY - canv.offsetTop;
+    }, false);
+  };
+
   var Player = function(){
     this.position = new Vector2D(0, 0);
     this.direction = new Vector2D(0, 0);
@@ -290,33 +303,40 @@ return function(params) {
   };
 
   var cPlayerLastPosition, cPlayerLastDirection, cPlayerLastSpeed = 0;
+  
+  var k = {};
+  ['up', 'left', 'down', 'right'].forEach(function(dir){
+    k[dir] = function(){
+      return kib.key(dir) || kib.key(canvKeys.codes[dir]);
+    };
+  });
 
   var loop = makeLoop(30, function(now){
     if (!room || !cPlayer) return;
 
     cPlayer.speed = 0;
 
-    if (kib.key('left')) {
+    if (k.left()) {
       cPlayer.direction.x = -1;
       cPlayer.speed = PLAYER_SPEED;
 
-    } else if (kib.key('right')) {
+    } else if (k.right()) {
       cPlayer.direction.x = 1;
       cPlayer.speed = PLAYER_SPEED;
     }
-    if (kib.key('up')) {
+    if (k.up()) {
       cPlayer.direction.y = -1;
       cPlayer.speed = PLAYER_SPEED;
 
-    } else if (kib.key('down')) {
+    } else if (k.down()) {
       cPlayer.direction.y = 1;
       cPlayer.speed = PLAYER_SPEED;
     }
 
-    if ((kib.key('up') || kib.key('down')) && (!kib.key('left') && !kib.key('right'))) {
+    if ((k.up() || k.down()) && (!k.left() && !k.right())) {
       cPlayer.direction.x = 0;
     }
-    if ((kib.key('left') || kib.key('right')) && (!kib.key('up') && !kib.key('down'))) {
+    if ((k.left() || k.right()) && (!k.up() && !k.down())) {
       cPlayer.direction.y = 0;
     }
     cPlayer.direction.normalize();
@@ -367,7 +387,13 @@ return function(params) {
       cPlayerLastDirection = new Vector2D(cPlayer.direction);
       cPlayerLastSpeed = cPlayer.speed;
     }
-    
+
+    // Mouse direction
+    if (kib.key('space')) {
+      cPlayer.direction = new Vector2D(Vector2D.substract(mousePosition, cPlayer.position));
+      cPlayer.direction.normalize();
+    }
+
     // Drawing
     canv.width = canvWidth;
 
@@ -385,12 +411,16 @@ return function(params) {
     for (var j=0; j < players.length; j++) {
       players[j].draw();
     }
+    
+    // Draw keys
+    canvKeys.draw(ctx);
   });
 
   loader.addCompletionListener(function(){
     kib.one('enter', function(){
       canv.className = '';
       socket.emit('new player', sessionID);
+      initMouse();
       loop.start();
       initTalk();
     });
