@@ -1,6 +1,6 @@
 /*jshint browser:true */
-define(['vendor/raf', 'vendor/PxLoader', 'vendor/PxLoaderImage', 'math2', 'loop', 'vendor/keyboard', 'socket.io/socket.io'],
-function(raf, PxLoader, PxLoaderImage, Math2, makeLoop, KeyboardJS, io) {
+define(['vendor/raf', 'vendor/PxLoader', 'vendor/PxLoaderImage', 'math2', 'loop', 'kib', 'socket.io/socket.io'],
+function(raf, PxLoader, PxLoaderImage, Math2, makeLoop, kib, io) {
 'use strict';
 return function(params) {
 
@@ -23,10 +23,10 @@ return function(params) {
       canvHeight = 0,
       images = {},
       waitRoomChange = false;
-  
+
   canvWidth = canv.width = TILE_SIZE * H_CELLS; // 800
   canvHeight = canv.height = TILE_SIZE * V_CELLS; // 480
-  
+
   // Images to load
   images.playerIdle = loader.addImage('/img/player-idle.png');
   images.playerWalk = [
@@ -36,21 +36,24 @@ return function(params) {
     loader.addImage('/img/player-walk-4.png'),
     loader.addImage('/img/player-walk-5.png')
   ];
-  
+
+  // Listen keyboard
+  kib.start();
+
   var socket = io.connect('http://' + domain);
-  
+
   socket.on('room', function(newRoom) {
     room = newRoom;
     console.log('room', room);
     updateRoomPlayers(room.players, true);
     waitRoomChange = false;
   });
-  
+
   socket.on('room players', function(players) {
     if (!cPlayer) return;
     updateRoomPlayers(players);
   });
-  
+
   // Updates a single player
   socket.on('player update', function(player) {
     for (var i=0; i < players.length; i++) {
@@ -71,9 +74,9 @@ return function(params) {
       }
     }
   });
-  
+
   var updateRoomPlayers = function(newPlayers, updateCPlayer){
-    
+
     // Clear chat bubbles
     for (var ci=0; ci < players.length; ci++) {
       players[ci].clearSay();
@@ -81,15 +84,15 @@ return function(params) {
     if (updateCPlayer && cPlayer) {
       cPlayer.clearSay();
     }
-    
+
     players = [];
     var player;
     for (var i=0; i < newPlayers.length; i++) {
-      
+
       if (newPlayers[i].id === sessionID && !updateCPlayer) {
         continue;
       }
-      
+
       player = new Player();
       player.id = newPlayers[i].id;
       player.dimensions.x = newPlayers[i].dimensions.x;
@@ -99,7 +102,7 @@ return function(params) {
       player.direction.x = newPlayers[i].direction.x;
       player.direction.y = newPlayers[i].direction.y;
       player.direction.normalize();
-      
+
       if (player.id === sessionID) {
         cPlayer = player;
       } else {
@@ -107,12 +110,12 @@ return function(params) {
       }
     }
   };
-  
+
   var vectorsCollide = function(a, b) {
     return (Math.abs(a.position.x - b.position.x) * 2 < (a.dimensions.x + b.dimensions.x)) &&
            (Math.abs(a.position.y - b.position.y) * 2 < (a.dimensions.y + b.dimensions.y));
   };
-  
+
   var intersectDepthVectors = function(a, b) {
     // Calculate current and minimum-non-intersecting distances between centers.
     var distanceX = a.position.x - b.position.x;
@@ -124,17 +127,16 @@ return function(params) {
     if (Math.abs(distanceX) >= minDistanceX || Math.abs(distanceY) >= minDistanceY) {
       return new Vector2D(0,0);
     }
-      
+
     // Calculate and return intersection depths.
     var depthX = distanceX > 0 ? minDistanceX - distanceX : -minDistanceX - distanceX;
     var depthY = distanceY > 0 ? minDistanceY - distanceY : -minDistanceY - distanceY;
-    
+
     return new Vector2D(depthX, depthY);
   };
-  
+
   var initTalk = function(){
-    var keyBind = KeyboardJS.on('s');
-    keyBind.on('keydown', function(){
+    kib.on(83 /* S */, function(){
       var msg = window.prompt('Message:');
       if (msg) {
         socket.emit('message', {
@@ -217,11 +219,11 @@ return function(params) {
       self.clearSay();
     }, 5000);
   };
-  
+
   var getDoorVectors = function(side, coordinates) {
     var position = new Vector2D(TILE_SIZE/2, TILE_SIZE/2),
         dimensions = new Vector2D(TILE_SIZE, TILE_SIZE);
-    
+
     switch (side) {
       case 1:
         position.x = canvWidth - TILE_SIZE/2;
@@ -230,7 +232,7 @@ return function(params) {
         position.y = canvHeight - TILE_SIZE/2;
         break;
     }
-    
+
     if (side === 0 || side === 2) {
       dimensions.y /= 2;
       if (side === 0) {
@@ -239,7 +241,7 @@ return function(params) {
         position.y += dimensions.y/2;
       }
       position.x = position.x + (coordinates * TILE_SIZE);
-      
+
     } else if (side === 1 || side === 3) {
       dimensions.x /= 2;
       if (side === 3) {
@@ -249,13 +251,13 @@ return function(params) {
       }
       position.y = position.y + (coordinates * TILE_SIZE);
     }
-    
+
     return {
       position: position,
       dimensions: dimensions
     };
   };
-  
+
   var drawDoor = function(side, coordinates) {
     var door = getDoorVectors(side, coordinates);
     ctx.fillStyle = 'rgba(0,0,0,.3)';
@@ -265,7 +267,7 @@ return function(params) {
       ctx.strokeRect(Math.round(door.position.x - door.dimensions.x/2) + 0.5, Math.round(door.position.y - door.dimensions.y/2) + 0.5, door.dimensions.x, door.dimensions.y);
     }
   };
-  
+
   var drawRoom = function(room) {
     for (var i=0; i < room.doors.length; i++) {
       if (room.doors[i] > -1) {
@@ -273,7 +275,7 @@ return function(params) {
       }
     }
   };
-  
+
   var doorCollision = function(player){
     var door;
     for (var i=0; i < room.doors.length; i++) {
@@ -286,47 +288,39 @@ return function(params) {
     }
     return false;
   };
-  
-  // Keyboard
-  var activeKeys = [];
-  var activeKey = function(key) {
-    return activeKeys.indexOf(key) !== -1;
-  };
-  
+
   var cPlayerLastPosition, cPlayerLastDirection, cPlayerLastSpeed = 0;
-  
+
   var loop = makeLoop(30, function(now){
     if (!room || !cPlayer) return;
-    
-    activeKeys = KeyboardJS.activeKeys();
+
     cPlayer.speed = 0;
-    
-    // Direction
-    if (activeKey('left')) {
+
+    if (kib.key('left')) {
       cPlayer.direction.x = -1;
       cPlayer.speed = PLAYER_SPEED;
-      
-    } else if (activeKey('right')) {
+
+    } else if (kib.key('right')) {
       cPlayer.direction.x = 1;
       cPlayer.speed = PLAYER_SPEED;
     }
-    if (activeKey('up')) {
+    if (kib.key('up')) {
       cPlayer.direction.y = -1;
       cPlayer.speed = PLAYER_SPEED;
-      
-    } else if (activeKey('down')) {
+
+    } else if (kib.key('down')) {
       cPlayer.direction.y = 1;
       cPlayer.speed = PLAYER_SPEED;
     }
-    
-    if ((activeKey('up') || activeKey('down')) && (!activeKey('left') && !activeKey('right'))) {
+
+    if ((kib.key('up') || kib.key('down')) && (!kib.key('left') && !kib.key('right'))) {
       cPlayer.direction.x = 0;
     }
-    if ((activeKey('left') || activeKey('right')) && (!activeKey('up') && !activeKey('down'))) {
+    if ((kib.key('left') || kib.key('right')) && (!kib.key('up') && !kib.key('down'))) {
       cPlayer.direction.y = 0;
     }
     cPlayer.direction.normalize();
-    
+
     var doorCollided = doorCollision(cPlayer);
     if (doorCollided !== false && !waitRoomChange) {
       socket.emit('door collision', {
@@ -335,7 +329,7 @@ return function(params) {
       });
       waitRoomChange = true;
     }
-    
+
     // Caches the player position / direction
     if (!cPlayerLastPosition) {
       cPlayerLastPosition = new Vector2D(cPlayer.position);
@@ -343,7 +337,7 @@ return function(params) {
     if (!cPlayerLastDirection) {
       cPlayerLastDirection = new Vector2D(cPlayer.direction);
     }
-    
+
     // Move
     cPlayer.position.add(Vector2D.multiply(cPlayer.direction, cPlayer.speed));
     // Limits
@@ -358,14 +352,14 @@ return function(params) {
       cPlayer.position.y = cPlayer.dimensions.y/2;
     }
     for (var i=0; i < players.length; i++) {
-      
+
       var intersectVector = intersectDepthVectors(cPlayer, players[i]);
       if (!(intersectVector.x === 0 && intersectVector.y === 0) ) {
         cPlayer.position = new Vector2D(cPlayer.position.x + intersectVector.x, cPlayer.position.y + intersectVector.y);
         break;
       }
     }
-    
+
     // Update position
     if (!Vector2D.equals(cPlayer.position, cPlayerLastPosition) || !Vector2D.equals(cPlayer.direction, cPlayerLastDirection) || cPlayer.speed !== cPlayerLastSpeed) {
       socket.emit('new position', cPlayer.export());
@@ -376,32 +370,29 @@ return function(params) {
     
     // Drawing
     canv.width = canvWidth;
-    
+
     if (DEBUG && doorCollided) {
       ctx.fillStyle = 'red';
       ctx.fillRect(0,0,10,10);
     }
-    
+
     drawRoom(room);
-    
+
     // Draw controlled player
     cPlayer.draw();
-    
+
     // Draw players
     for (var j=0; j < players.length; j++) {
       players[j].draw();
     }
   });
-  
+
   loader.addCompletionListener(function(){
-    var keyBind = KeyboardJS.on('enter');
-    keyBind.on('keydown', function(){
+    kib.one('enter', function(){
       canv.className = '';
       socket.emit('new player', sessionID);
       loop.start();
-      
       initTalk();
-      keyBind.clear();
     });
   });
   loader.start();
