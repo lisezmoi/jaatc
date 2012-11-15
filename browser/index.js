@@ -30,6 +30,7 @@ return function(params) {
 
   // Images to load
   images.playerIdle = loader.addImage('/img/player-idle.png');
+  images.playerAiming = loader.addImage('/img/player-arm.png');
   images.playerWalk = [
     loader.addImage('/img/player-walk-1.png'),
     loader.addImage('/img/player-walk-2.png'),
@@ -166,6 +167,7 @@ return function(params) {
     this.position = new Vector2D(0, 0);
     this.direction = new Vector2D(0, 0);
     this.dimensions = new Vector2D(TILE_SIZE, TILE_SIZE);
+    this.aiming = false;
   };
   Player.prototype.draw = function(){
     var playerImage;
@@ -176,10 +178,17 @@ return function(params) {
     ctx.save();
     ctx.translate(this.position.x, this.position.y);
     ctx.rotate(this.direction.getAngle());
-    playerImage = this.speed? this.walkImage() : images.playerIdle;
+    playerImage = this.getImage();
     ctx.drawImage(playerImage, Math.round(-this.dimensions.x/2), Math.round(-this.dimensions.y/2), this.dimensions.x, this.dimensions.y);
     ctx.restore();
     this.positionSay();
+  };
+  Player.prototype.getImage = function(){
+    if (this.speed) {
+      return this.walkImage();
+    } else {
+      return this.aiming? images.playerAiming : images.playerIdle;
+    }
   };
   Player.prototype.walkImage = function(){
     var now = Date.now(),
@@ -393,6 +402,9 @@ return function(params) {
     if (kib.key('space')) {
       cPlayer.direction = new Vector2D(Vector2D.substract(mousePosition, cPlayer.position));
       cPlayer.direction.normalize();
+      cPlayer.aiming = true;
+    } else {
+      cPlayer.aiming = false;
     }
 
     // Drawing
