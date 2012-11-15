@@ -11,6 +11,8 @@
   'use strict';
   
   var ALIASES = {
+    'command': 224,
+    'control': 17,
     'left': 37,
     'up': 38,
     'right': 39,
@@ -61,7 +63,10 @@
       if (activeKeys.indexOf(e.keyCode) === -1) {
         activeKeys.push(e.keyCode);
       }
-      execListeners(e.keyCode, e);
+      if (activeKeys.indexOf(aliasToKey('command')) < 0 &&
+          activeKeys.indexOf(aliasToKey('control')) < 0) {
+        execListeners(e.keyCode, e);
+      }
     },
     keyup: function(e){
       if (activeKeys.indexOf(e.keyCode) > -1) {
