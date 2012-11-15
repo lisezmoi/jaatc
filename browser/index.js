@@ -155,7 +155,7 @@ return function(params) {
   };
 
   var initMouse = function(){
-    canv.addEventListener('mousemove', function(e){
+    document.documentElement.addEventListener('mousemove', function(e){
       mousePosition.x = e.clientX - canv.offsetLeft;
       mousePosition.y = e.clientY - canv.offsetTop;
     }, false);
@@ -412,11 +412,33 @@ return function(params) {
       players[j].draw();
     }
     
+    if (kib.key('space')) {
+      ctx.fillStyle = '#000';
+      ctx.strokeStyle = '#000';
+      ctx.arc(mousePosition.x, mousePosition.y, 1, 0, Math.PI*2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(mousePosition.x, mousePosition.y, 10, 0, Math.PI*2);
+      ctx.stroke();
+      ctx.closePath();
+    }
+    
     // Draw keys
     canvKeys.draw(ctx);
   });
 
   loader.addCompletionListener(function(){
+    
+    kib.on('space', function(){
+      document.documentElement.classList.add('no-cursor');
+    });
+    // tmp
+    document.addEventListener('keyup', function(e){
+      if (e.keyCode == 32) {
+        document.documentElement.classList.remove('no-cursor');
+      }
+    }, false);
+    
     kib.one('enter', function(){
       canv.className = '';
       socket.emit('new player', sessionID);
