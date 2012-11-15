@@ -38,6 +38,9 @@
       this.set({x: 0, y: 0});
     }
   };
+  Vector2D.prototype.clone = function() {
+    return new Vector2D(this);
+  };
   Vector2D.prototype.set = function(obj1, obj2) {
     if (isNumber(obj1) && isNumber(obj2)) {
       this.x = obj1;
