@@ -1,6 +1,6 @@
 /*jshint browser:true */
-define(['vendor/raf', 'vendor/PxLoader', 'vendor/PxLoaderImage', 'math2', 'loop', 'kib', 'socket.io/socket.io', 'keys'],
-function(raf, PxLoader, PxLoaderImage, Math2, makeLoop, kib, io, Keys) {
+define(['vendor/raf', 'vendor/PxLoader', 'vendor/PxLoaderImage', 'math2', 'loop', 'kib', 'socket.io/socket.io', 'keys', 'vendor/store'],
+function(raf, PxLoader, PxLoaderImage, Math2, makeLoop, kib, io, Keys, store) {
 'use strict';
 return function(params) {
 
@@ -40,10 +40,11 @@ return function(params) {
 
   // Listen keyboard
   kib.start();
-  
+
   // Keys (canvas)
   var canvKeys = new Keys(5, canvHeight - 50, 30, 20, 5);
   canvKeys.bindClick(canv);
+  canvKeys.bindStore(store);
 
   var socket = io.connect('http://' + domain);
 
@@ -303,7 +304,7 @@ return function(params) {
   };
 
   var cPlayerLastPosition, cPlayerLastDirection, cPlayerLastSpeed = 0;
-  
+
   var k = {};
   ['up', 'left', 'down', 'right'].forEach(function(dir){
     k[dir] = function(){
@@ -411,7 +412,7 @@ return function(params) {
     for (var j=0; j < players.length; j++) {
       players[j].draw();
     }
-    
+
     if (kib.key('space')) {
       ctx.fillStyle = '#000';
       ctx.strokeStyle = '#000';
@@ -422,13 +423,13 @@ return function(params) {
       ctx.stroke();
       ctx.closePath();
     }
-    
+
     // Draw keys
     canvKeys.draw(ctx);
   });
 
   loader.addCompletionListener(function(){
-    
+
     kib.on('space', function(){
       document.documentElement.classList.add('no-cursor');
     });
@@ -438,7 +439,7 @@ return function(params) {
         document.documentElement.classList.remove('no-cursor');
       }
     }, false);
-    
+
     kib.one('enter', function(){
       canv.className = '';
       socket.emit('new player', sessionID);

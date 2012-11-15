@@ -1,13 +1,13 @@
 /*jshint browser:true */
 define([], function() {
 'use strict';
-  
+
   var document = window.document;
-  
+
   var hit = function(mX, mY, tX, tY, tW, tH) {
     return mX > tX && mX < tX + tW && mY > tY && mY < tY + tH;
   };
-  
+
   var hitKey = function(mX, mY, keys){
     var c = keys.measureButtons();
     var dirs = ['up', 'left', 'down', 'right'];
@@ -18,18 +18,18 @@ define([], function() {
     }
     return false;
   };
-  
+
   var drawAlignedLetter = function(ctx, letter, x, y, w) {
     var lw = ctx.measureText(letter).width;
     ctx.fillText(letter, (x + w/2) - (lw/2), y - 5, w);
   };
-  
+
   var mkInput = function(canv, text, w, h, x, y, cb){
     var input = document.createElement('input');
     input.type = 'text';
     input.maxLength = 1;
     input.value = text.slice(0, 1);
-    
+
     var styles = {
       textAlign: 'center',
       font: '14px Arial',
@@ -69,7 +69,7 @@ define([], function() {
     };
     return input;
   };
-  
+
   var Keys = function(x, y, w, h, m) {
     this.x = x || 0;
     this.y = y || 0;
@@ -87,6 +87,22 @@ define([], function() {
       right: 68
     };
   };
+  Keys.prototype.setKeys = function(keys) {
+    var self = this;
+    ['up', 'left', 'down', 'right'].forEach(function(dir){
+      if (!keys[dir]) { return; }
+      self.codes[dir] = keys[dir][0];
+      self[dir] = keys[dir][1];
+    });
+  };
+  Keys.prototype.getKeys = function() {
+    var self = this, keys = {};
+    ['up', 'left', 'down', 'right'].forEach(function(dir){
+      keys[dir] = [self.codes[dir], self[dir]];
+    });
+    return keys;
+  };
+
   Keys.prototype.measureButtons = function() {
     return {
       up: [this.margin + this.x + this.keyWidth, this.y],
@@ -95,7 +111,7 @@ define([], function() {
       right: [this.x + this.keyWidth*2 + this.margin*2, this.y + this.keyHeight + this.margin]
     };
   };
-  
+
   Keys.prototype.draw = function(ctx) {
     ctx.fillStyle = 'rgba(0,0,0,.3)';
 
@@ -114,12 +130,16 @@ define([], function() {
     drawAlignedLetter(ctx, this.down, c.down[0], c.down[1] + this.keyHeight, this.keyWidth);
     drawAlignedLetter(ctx, this.right, c.right[0], c.right[1] + this.keyHeight, this.keyWidth);
   };
-  Keys.prototype.set = function(keys) {
-    this.up = keys.up;
-    this.right = keys.right;
-    this.down = keys.down;
-    this.left = keys.left;
+  Keys.prototype.bindStore = function(store) {
+    if (store.enabled) {
+      var storedKeys = store.get('keys');
+      if (storedKeys) {
+        this.setKeys(storedKeys);
+      }
+      this.store = store;
+    }
   };
+
   Keys.prototype.bindClick = function(canvas) {
     var self = this;
     canvas.addEventListener('click', function(e){
@@ -132,11 +152,14 @@ define([], function() {
             if (keyCode) {
               self[hit[3]] = String.fromCharCode(keyCode).toUpperCase();
               self.codes[hit[3]] = keyCode;
+              if (self.store) {
+                self.store.set('keys', self.getKeys());
+              }
             }
           });
       }
     }, false);
   };
-  
+
   return Keys;
 });
