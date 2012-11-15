@@ -104,6 +104,24 @@
     this.x = Math.cos(angle);
     this.y = Math.sin(angle);
   };
+  Vector2D.prototype.turnRight = function() {
+    var x = this.x, y = this.y;
+    this.x = -y;
+    this.y = x;
+    return this;
+  };
+  Vector2D.prototype.turnLeft = function() {
+    var x = this.x, y = this.y;
+    this.y = -x;
+    this.x = y;
+    return this;
+  };
+  Vector2D.prototype.dot = function(v2d){
+    if (isNumber(v2d)) {
+      v2d = {x: v2d, y: v2d};
+    }
+    return this.x * v2d.x + this.y * v2d.y;
+  };
   
   /* Static methods */
   Vector2D.add = function(v1, v2) {
@@ -135,6 +153,12 @@
       v2 = {x: v2, y: v2};
     }
     return v1.x === v2.x && v1.y === v2.y;
+  };
+  Vector2D.dot = function(v1, v2){
+    if (isNumber(v2)) {
+      v2 = {x: v2, y: v2};
+    }
+    return v1.x * v2.x + v1.y * v2.y;
   };
   Vector2D.normalize = function(v) {
     return (new Vector2D(v)).normalize();
