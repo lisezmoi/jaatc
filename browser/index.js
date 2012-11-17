@@ -5,7 +5,7 @@ function(raf, PxLoader, PxLoaderImage, Math2, makeLoop, kib, io, Keys, store) {
 return function(params) {
 
   var TILE_SIZE = 32,
-      PLAYER_SPEED = 5,
+      PLAYER_SPEED = 3,
       H_CELLS = 25,
       V_CELLS = 15,
       DEBUG = false,
@@ -143,8 +143,7 @@ return function(params) {
   };
 
   var initTalk = function(){
-    return;
-    kib.on(83 /* S */, function(){
+    kib.on(84 /* T */, function(){
       var msg = window.prompt('Message:');
       if (msg) {
         socket.emit('message', {
@@ -162,7 +161,7 @@ return function(params) {
       mousePosition.y = e.clientY - canv.offsetTop;
     }, false);
   };
-
+  
   var Player = function(){
     this.position = new Vector2D(0, 0);
     this.direction = new Vector2D(0, 0);
@@ -180,8 +179,15 @@ return function(params) {
     ctx.rotate(this.direction.getAngle());
     playerImage = this.getImage();
     ctx.drawImage(playerImage, Math.round(-this.dimensions.x/2), Math.round(-this.dimensions.y/2), this.dimensions.x, this.dimensions.y);
+    if (DEBUG) {
+      ctx.strokeStyle = 'rgba(0,0,0,.5)';
+      ctx.strokeRect(Math.round(-this.dimensions.x/2) + 0.5, Math.round(-this.dimensions.y/2) + 0.5, this.dimensions.x, this.dimensions.y);
+    }
     ctx.restore();
     this.positionSay();
+    if (this.bullet) {
+      this.bullet.draw();
+    }
   };
   Player.prototype.getImage = function(){
     if (this.speed) {
@@ -241,6 +247,46 @@ return function(params) {
     this.sayTimeout = window.setTimeout(function(){
       self.clearSay();
     }, 5000);
+  };
+  Player.prototype.shoot = function(){
+    var bulletPosition = Vector2D.multiply(this.direction, 20);
+    bulletPosition.add(this.direction.clone().turnRight().multiply(9));
+    bulletPosition.add(this.position);
+    var bulletDirection = Vector2D.substract(mousePosition, bulletPosition).normalize();
+    this.bullet = new Bullet(bulletPosition, bulletDirection);
+  };
+  
+  var Bullet = function(position, direction){
+    if (!position) {
+      position = {x: 0, y: 0};
+    }
+    if (!direction) {
+      direction = {x: 0, y: 0};
+    }
+    this.position = new Vector2D(position);
+    this.direction = (new Vector2D(direction)).normalize();
+    this.speed = 20;
+    this.size = 5;
+    this.firstMove = true;
+  };
+  Bullet.prototype.move = function() {
+    if (this.firstMove) {
+      this.firstMove = false;
+      return;
+    }
+    this.position.add(Vector2D.multiply(this.direction, this.speed));
+  };
+  Bullet.prototype.draw = function() {
+    ctx.strokeStyle = '#a4991d';
+    ctx.save();
+    ctx.translate(this.position.x, this.position.y);
+    ctx.rotate(this.direction.getAngle());
+    ctx.moveTo(0, 0);
+    ctx.lineTo(0, 5);
+    ctx.stroke();
+    ctx.closePath();
+    // ctx.fillRect(0, 0, 3, 3);
+    ctx.restore();
   };
 
   var getDoorVectors = function(side, coordinates) {
@@ -321,7 +367,7 @@ return function(params) {
     };
   });
 
-  var loop = makeLoop(30, function(now){
+  var loop = makeLoop(60, function(now){
     if (!room || !cPlayer) return;
 
     cPlayer.speed = 0;
@@ -382,7 +428,6 @@ return function(params) {
       cPlayer.position.y = cPlayer.dimensions.y/2;
     }
     for (var i=0; i < players.length; i++) {
-
       var intersectVector = intersectDepthVectors(cPlayer, players[i]);
       if (!(intersectVector.x === 0 && intersectVector.y === 0) ) {
         cPlayer.position = new Vector2D(cPlayer.position.x + intersectVector.x, cPlayer.position.y + intersectVector.y);
@@ -406,8 +451,14 @@ return function(params) {
     } else {
       cPlayer.aiming = false;
     }
+    
+    // Shoot
+    if (cPlayer.bullet) {
+      cPlayer.bullet.move();
+    }
 
-    // Drawing
+    /* DRAWING */
+    
     canv.width = canvWidth;
 
     if (DEBUG && doorCollided) {
@@ -451,14 +502,26 @@ return function(params) {
         document.documentElement.classList.remove('no-cursor');
       }
     }, false);
+    
+    canv.addEventListener('click', function(){
+      if (kib.key('space')) {
+        cPlayer.shoot();
+      }
+    });
 
-    kib.one('enter', function(){
+    var start = function(){
       canv.className = '';
       socket.emit('new player', sessionID);
       initMouse();
       loop.start();
       initTalk();
-    });
+    };
+    
+    if (DEBUG) {
+      start();
+    } else {
+      kib.one('enter', start);
+    }
   });
   loader.start();
 };
