@@ -19,3 +19,7 @@ $ npm start
 - Arrow keys or WASD to move (configurable: click on the keys)
 - "S" to talk (temporarily disabled)
 - Spacebar to rotate the character (you can still move)
+
+## Demo
+
+Whatch the [video](https://www.youtube.com/watch?v=hB4NuKXSlyQ).
