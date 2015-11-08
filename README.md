@@ -23,3 +23,7 @@ $ npm start
 ## Demo
 
 Whatch the [video](https://www.youtube.com/watch?v=hB4NuKXSlyQ).
+
+## License
+
+[MIT](http://opensource.org/licenses/MIT)
